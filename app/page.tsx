@@ -1,21 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { registerUser, loginUser } from "./actions"; // 引入剛寫好的邏輯
+import { useRouter } from "next/navigation"; // 1. 引入路由工具
+import { registerUser, loginUser } from "./actions";
 
 export default function Home() {
   const [isLogin, setIsLogin] = useState(true);
-  const [message, setMessage] = useState(""); // 用來顯示錯誤或成功訊息
+  const [message, setMessage] = useState("");
+  const router = useRouter(); // 2. 初始化 router
 
   async function clientAction(formData: FormData) {
     setMessage("處理中...");
     const result = isLogin ? await loginUser(formData) : await registerUser(formData);
     
     setMessage(result.message);
-    if (result.success && !isLogin) {
-      // 註冊成功後自動跳到登入頁，或清空欄位
-      setIsLogin(true);
+
+    // --- 關鍵修改處 ---
+    if (result.success) {
+      if (isLogin) {
+        // 如果是「登入」成功，直接跳轉到 profile 頁面
+        // 注意：確保你已經建立了 app/profile/page.tsx
+        router.push("/profile"); 
+      } else {
+        // 如果是「註冊」成功，切換到登入介面讓使用者登入
+        setIsLogin(true);
+      }
     }
+    // ----------------
   }
 
   return (
@@ -25,10 +36,9 @@ export default function Home() {
           {isLogin ? "登入帳號" : "註冊新帳號"}
         </h2>
         
-        {/* 使用 form 的 action 直接呼叫 Server Action */}
         <form action={clientAction} className="flex flex-col gap-4">
           <input 
-            name="account" // 注意：要有 name 屬性，FormData 才能抓到值
+            name="account" 
             type="text" 
             placeholder="請輸入帳號"
             className="border p-2 rounded outline-blue-500"
@@ -51,7 +61,6 @@ export default function Home() {
           </button>
         </form>
 
-        {/* 顯示結果訊息 */}
         {message && (
           <p className={`mt-4 text-center text-sm ${message.includes("✅") ? "text-green-600" : "text-red-600"}`}>
             {message}

@@ -43,3 +43,54 @@ export async function loginUser(formData: FormData) {
 
   return { success: true, message: `👋 歡迎回來，${user.account}！` };
 }
+
+// 3. 更改邏輯
+export async function updateUser(formData: FormData) {
+  // 從隱藏欄位取得 id
+  const userId = parseInt(formData.get("id") as string); 
+  const newAccount = formData.get("newAccount") as string;
+  const newPassword = formData.get("newPassword") as string;
+
+  try {
+    // 1. 檢查新帳號是否被「其他人」佔用 (排除掉自己)
+    const existingUser = await prisma.profile.findFirst({
+      where: { 
+        account: newAccount,
+        NOT: { id: userId } // 排除掉目前正在修改的這個人
+      },
+    });
+
+    if (existingUser) {
+      return { success: false, message: "❌ 此帳號已被他人使用！" };
+    }
+
+    // 2. 使用唯一 ID 進行更新
+    await prisma.profile.update({
+      where: { id: userId },
+      data: {
+        account: newAccount,
+        password: newPassword,
+      },
+    });
+
+    return { success: true, message: "✅ 資料已更新成功！" };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "❌ 更新失敗，請稍後再試。" };
+  }
+}
+
+// 4. 刪除邏輯
+export async function deleteUser(formData: FormData) {
+  const userId = parseInt(formData.get("id") as string);
+
+  try {
+    await prisma.profile.delete({
+      where: { id: userId },
+    });
+    return { success: true, message: "✅ 帳號已永久刪除。" };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "❌ 刪除失敗，請稍後再試。" };
+  }
+}
