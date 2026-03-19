@@ -1,8 +1,10 @@
 "use server"; // 關鍵！這行告訴 Next.js 這是跑在伺服器端的安全代碼
 
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-// 1. 註冊邏輯
+// --- 1. 註冊邏輯 ---
 export async function registerUser(formData: FormData) {
   const account = formData.get("account") as string;
   const password = formData.get("password") as string;
@@ -27,7 +29,7 @@ export async function registerUser(formData: FormData) {
   return { success: true, message: "✅ 註冊成功！現在可以登入囉。" };
 }
 
-// 2. 登入邏輯
+// --- 2. 登入邏輯 ---
 export async function loginUser(formData: FormData) {
   const account = formData.get("account") as string;
   const password = formData.get("password") as string;
@@ -41,12 +43,27 @@ export async function loginUser(formData: FormData) {
     return { success: false, message: "❌ 帳號或密碼錯誤，請再試一次。" };
   }
 
+  // 【新增：登入成功發放 Cookie】
+  const cookieStore = await cookies();
+  cookieStore.set("userId", user.id.toString(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24, // 有效期 1 天
+    path: "/",
+  });
+
   return { success: true, message: `👋 歡迎回來，${user.account}！` };
 }
 
-// 3. 更改邏輯
+// --- 3. 登出邏輯 (新增) ---
+export async function logoutUser() {
+  const cookieStore = await cookies();
+  cookieStore.delete("userId");
+  redirect("/"); // 登出後直接導向首頁
+}
+
+// --- 4. 更新個人資料邏輯 ---
 export async function updateUser(formData: FormData) {
-  // 從隱藏欄位取得 id
   const userId = parseInt(formData.get("id") as string); 
   const newAccount = formData.get("newAccount") as string;
   const newPassword = formData.get("newPassword") as string;
@@ -56,7 +73,7 @@ export async function updateUser(formData: FormData) {
     const existingUser = await prisma.profile.findFirst({
       where: { 
         account: newAccount,
-        NOT: { id: userId } // 排除掉目前正在修改的這個人
+        NOT: { id: userId } 
       },
     });
 
@@ -80,14 +97,20 @@ export async function updateUser(formData: FormData) {
   }
 }
 
-// 4. 刪除邏輯
+// --- 5. 刪除帳號邏輯 ---
 export async function deleteUser(formData: FormData) {
   const userId = parseInt(formData.get("id") as string);
 
   try {
+    // 1. 從資料庫刪除
     await prisma.profile.delete({
       where: { id: userId },
     });
+
+    // 2. 刪除後要清除登入狀態 (Cookie)
+    const cookieStore = await cookies();
+    cookieStore.delete("userId");
+
     return { success: true, message: "✅ 帳號已永久刪除。" };
   } catch (error) {
     console.error(error);
