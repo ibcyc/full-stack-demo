@@ -13,6 +13,12 @@ This project was created for practice and study purposes only. It demonstrates a
 - Deleting an account
 - Basic cookie-based login state
 
+## Deployment History
+
+This project was originally deployed on Vercel and connected to a Supabase PostgreSQL database.
+
+The deployment and database connection were later removed for security reasons, since this project was only created as a practice demo and does not implement production-ready authentication.
+
 ## Security Notice
 
 This project is **not production-ready**.
@@ -30,8 +36,12 @@ For real applications, use proper password hashing, secure session management, C
 - TypeScript
 - Prisma
 - PostgreSQL
+- Supabase
+- Vercel
 - Tailwind CSS
 
 ## Notes
 
-This repository is only a practice project for understanding how a simple login flow works.
+This repository is a small practice project for learning how a simple frontend, backend, database, and deployment workflow can work together.
+
+It is intended as a learning record, not as a production application or a secure authentication example.
